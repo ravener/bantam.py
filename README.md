@@ -1,5 +1,5 @@
 # bantam.py
-This a port of [Bantam](https://github.com/munificent/bantam) to Python, which demonstrates Pratt parsing as of [this blog post](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
+This a port of [Bantam](https://github.com/munificent/bantam) to Python, which demonstrates Pratt parsing as part of [this blog post](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
 
 The code was written to mimick the original Java code as close as possible.
 
