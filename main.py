@@ -3,55 +3,59 @@ from collections.abc import Iterator
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 
+
 class ParseException(Exception):
     pass
 
+
 class Precedence:
     # Ordered in increasing precedence.
-    ASSIGNMENT  = 1
+    ASSIGNMENT = 1
     CONDITIONAL = 2
-    SUM         = 3
-    PRODUCT     = 4
-    EXPONENT    = 5
-    PREFIX      = 6
-    POSTFIX     = 7
-    CALL        = 8
+    SUM = 3
+    PRODUCT = 4
+    EXPONENT = 5
+    PREFIX = 6
+    POSTFIX = 7
+    CALL = 8
+
 
 class TokenType(Enum):
-    LEFT_PAREN  = auto()
+    LEFT_PAREN = auto()
     RIGHT_PAREN = auto()
-    COMMA       = auto()
-    ASSIGN      = auto()
-    PLUS        = auto()
-    MINUS       = auto()
-    ASTERISK    = auto()
-    SLASH       = auto()
-    CARET       = auto()
-    TILDE       = auto()
-    BANG        = auto()
-    QUESTION    = auto()
-    COLON       = auto()
-    NAME        = auto()
-    EOF         = auto()
+    COMMA = auto()
+    ASSIGN = auto()
+    PLUS = auto()
+    MINUS = auto()
+    ASTERISK = auto()
+    SLASH = auto()
+    CARET = auto()
+    TILDE = auto()
+    BANG = auto()
+    QUESTION = auto()
+    COLON = auto()
+    NAME = auto()
+    EOF = auto()
 
     def punctuator(self):
         mappings = {
-            "LEFT_PAREN":  "(",
+            "LEFT_PAREN": "(",
             "RIGHT_PAREN": ")",
-            "COMMA":       ",",
-            "ASSIGN":      "=",
-            "PLUS":        "+",
-            "MINUS":       "-",
-            "ASTERISK":    "*",
-            "SLASH":       "/",
-            "CARET":       "^",
-            "TILDE":       "~",
-            "BANG":        "!",
-            "QUESTION":    "?",
-            "COLON":       ":"
+            "COMMA": ",",
+            "ASSIGN": "=",
+            "PLUS": "+",
+            "MINUS": "-",
+            "ASTERISK": "*",
+            "SLASH": "/",
+            "CARET": "^",
+            "TILDE": "~",
+            "BANG": "!",
+            "QUESTION": "?",
+            "COLON": ":",
         }
 
         return mappings.get(self.name)
+
 
 class Token:
     def __init__(self, type, text):
@@ -64,6 +68,7 @@ class Expression(metaclass=ABCMeta):
     @abstractmethod
     def print(self, builder):
         pass
+
 
 # An assignment expression like "a = b".
 class AssignExpression(Expression):
@@ -78,6 +83,7 @@ class AssignExpression(Expression):
         self.right.print(builder)
         builder.write(")")
 
+
 # A function call like "a(b, c, d)".
 class CallExpression(Expression):
     def __init__(self, function, args):
@@ -91,10 +97,11 @@ class CallExpression(Expression):
         for i, arg in enumerate(self.args):
             arg.print(builder)
 
-            if i < len(self.args)-1:
+            if i < len(self.args) - 1:
                 builder.write(", ")
 
         builder.write(")")
+
 
 # A ternary conditional expression like "a ? b : c".
 class ConditionalExpression(Expression):
@@ -112,6 +119,7 @@ class ConditionalExpression(Expression):
         self.else_arm.print(builder)
         builder.write(")")
 
+
 # A simple variable name expression like "abc".
 class NameExpression(Expression):
     def __init__(self, name):
@@ -119,6 +127,7 @@ class NameExpression(Expression):
 
     def print(self, builder):
         builder.write(self.name)
+
 
 # A binary arithmetic expression like "a + b" or "c ^ d".
 class OperatorExpression(Expression):
@@ -136,6 +145,7 @@ class OperatorExpression(Expression):
         self.right.print(builder)
         builder.write(")")
 
+
 # A postfix unary arithmetic expression like "a!".
 class PostfixExpression(Expression):
     def __init__(self, left, operator):
@@ -147,6 +157,7 @@ class PostfixExpression(Expression):
         self.left.print(builder)
         builder.write(self.operator.punctuator())
         builder.write(")")
+
 
 # A prefix unary arithmetic expression like "!a" or "-b".
 class PrefixExpression(Expression):
@@ -167,6 +178,7 @@ class PrefixParselet(metaclass=ABCMeta):
     def parse(self, parser, token):
         pass
 
+
 class InfixParselet(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, parser, left, token):
@@ -182,7 +194,7 @@ class InfixParselet(metaclass=ABCMeta):
 # right-associative. (In other words, "a = b = c" is parsed as "a = (b = c)").
 class AssignParselet(InfixParselet):
     def parse(self, parser, left, token):
-        right = parser.parse_expression(Precedence.ASSIGNMENT-1)
+        right = parser.parse_expression(Precedence.ASSIGNMENT - 1)
 
         if not isinstance(left, NameExpression):
             raise ParseException("The left-hand side of an assignment must be a name.")
@@ -191,6 +203,7 @@ class AssignParselet(InfixParselet):
 
     def get_precedence(self):
         return Precedence.ASSIGNMENT
+
 
 # Generic infix parselet for a binary arithmetic operator. The only
 # difference when parsing, "+", "-", "*", "/", and "^" is precedence and
@@ -205,13 +218,13 @@ class BinaryOperatorParselet(InfixParselet):
         # lower precedence when parsing the right-hand side. This will let a
         # parselet with the same precedence appear on the right, which will then
         # take *this* parselet's result as its left-hand argument.
-        right = parser.parse_expression(
-                self.precedence - (1 if self.is_right else 0))
+        right = parser.parse_expression(self.precedence - (1 if self.is_right else 0))
 
         return OperatorExpression(left, token.type, right)
 
     def get_precedence(self):
         return self.precedence
+
 
 # Parselet to parse a function call like "a(b, c, d)".
 class CallParselet(InfixParselet):
@@ -238,12 +251,13 @@ class ConditionalParselet(InfixParselet):
     def parse(self, parser, left, token):
         then_arm = parser.parse_expression()
         parser.consume(TokenType.COLON)
-        else_arm = parser.parse_expression(Precedence.CONDITIONAL-1)
-        
+        else_arm = parser.parse_expression(Precedence.CONDITIONAL - 1)
+
         return ConditionalExpression(left, then_arm, else_arm)
 
     def get_precedence(self):
         return Precedence.CONDITIONAL
+
 
 # Parses parentheses used to group an expression, like "a * (b + c)".
 class GroupParselet(PrefixParselet):
@@ -252,22 +266,25 @@ class GroupParselet(PrefixParselet):
         parser.consume(TokenType.RIGHT_PAREN)
         return expression
 
+
 # Simple parselet for a named variable like "abc".
 class NameParselet(PrefixParselet):
     def parse(self, parser, token):
         return NameExpression(token.text)
+
 
 # Generic infix parselet for an unary arithmetic operator. Parses postfix
 # unary "?" expressions.
 class PostfixOperatorParselet(InfixParselet):
     def __init__(self, precedence):
         self.precedence = precedence
-    
+
     def parse(self, parser, left, token):
         return PostfixExpression(left, token.type)
 
     def get_precedence(self):
         return self.precedence
+
 
 # Generic prefix parselet for an unary arithmetic operator. Parses prefix
 # unary "-", "+", "~", and "!" expressions.
@@ -280,13 +297,13 @@ class PrefixOperatorParselet(PrefixParselet):
         # lower precedence when parsing the right-hand side. This will let a
         # parselet with the same precedence appear on the right, which will then
         # take *this* parselet's result as its left-hand argument.
-        right = parser.parse_expression(self.precedence);
+        right = parser.parse_expression(self.precedence)
 
-        return PrefixExpression(token.type, right);
+        return PrefixExpression(token.type, right)
 
     def get_precedence(self):
         return self.precedence
-        
+
 
 # A very primitive lexer. Takes a string and splits it into a series of
 # Tokens. Operators and punctuation are mapped to unique keywords. Names,
@@ -320,8 +337,8 @@ class Lexer(Iterator):
                     if not self.text[self.index].isalpha():
                         break
                     self.index += 1
-                    
-                name = self.text[start:self.index]
+
+                name = self.text[start : self.index]
                 return Token(TokenType.NAME, name)
             else:
                 # Ignore all other characters (whitespace, etc.)
@@ -331,6 +348,7 @@ class Lexer(Iterator):
         # just keeping returning them as many times as we're asked so that the
         # parser's lookahead doesn't have to worry about running out of tokens.
         return Token(TokenType.EOF, "")
+
 
 class Parser:
     def __init__(self, tokens):
@@ -350,8 +368,8 @@ class Parser:
         prefix = self.prefix_parselets.get(token.type)
 
         if not prefix:
-            raise ParseException("Could not parse \"{}\".".format(token.text))
-        
+            raise ParseException('Could not parse "{}".'.format(token.text))
+
         left = prefix.parse(self, token)
 
         while precedence < self.get_precedence():
@@ -362,7 +380,6 @@ class Parser:
 
         return left
 
-
     def match(self, expected):
         token = self.look_ahead(0)
 
@@ -372,12 +389,13 @@ class Parser:
         self.consume()
         return True
 
-    def consume(self, expected: TokenType = None) -> Token:
+    def consume(self, expected=None):
         token = self.look_ahead(0)
 
         if expected and token.type != expected:
-            raise Exception("Expected token {} and found {}".format(
-                expected, token.type))
+            raise Exception(
+                "Expected token {} and found {}".format(expected, token.type)
+            )
 
         return self.read.pop(0)
 
@@ -395,37 +413,37 @@ class Parser:
 
         return 0
 
+
 # Extends the generic Parser class with support for parsing the actual Bantam
 # grammar.
 class BantamParser(Parser):
     def __init__(self, lexer):
         super().__init__(lexer)
-        
+
         # Register all of the parselets for the grammar.
 
         # Register the ones that need special parselets.
-        self.register(TokenType.NAME,       NameParselet())
-        self.register(TokenType.ASSIGN,     AssignParselet())
-        self.register(TokenType.QUESTION,   ConditionalParselet())
+        self.register(TokenType.NAME, NameParselet())
+        self.register(TokenType.ASSIGN, AssignParselet())
+        self.register(TokenType.QUESTION, ConditionalParselet())
         self.register(TokenType.LEFT_PAREN, GroupParselet())
         self.register(TokenType.LEFT_PAREN, CallParselet())
 
         # Register the simple operator parselets.
-        self.prefix(TokenType.PLUS,      Precedence.PREFIX)
-        self.prefix(TokenType.MINUS,     Precedence.PREFIX)
-        self.prefix(TokenType.TILDE,     Precedence.PREFIX)
-        self.prefix(TokenType.BANG,      Precedence.PREFIX)
+        self.prefix(TokenType.PLUS, Precedence.PREFIX)
+        self.prefix(TokenType.MINUS, Precedence.PREFIX)
+        self.prefix(TokenType.TILDE, Precedence.PREFIX)
+        self.prefix(TokenType.BANG, Precedence.PREFIX)
 
         # For kicks, we'll make "!" both prefix and postfix, kind of like ++.
-        self.postfix(TokenType.BANG,     Precedence.POSTFIX)
+        self.postfix(TokenType.BANG, Precedence.POSTFIX)
 
-        self.infix_left(TokenType.PLUS,     Precedence.SUM)
-        self.infix_left(TokenType.MINUS,    Precedence.SUM)
+        self.infix_left(TokenType.PLUS, Precedence.SUM)
+        self.infix_left(TokenType.MINUS, Precedence.SUM)
         self.infix_left(TokenType.ASTERISK, Precedence.PRODUCT)
-        self.infix_left(TokenType.SLASH,    Precedence.PRODUCT)
-        self.infix_right(TokenType.CARET,   Precedence.EXPONENT)
+        self.infix_left(TokenType.SLASH, Precedence.PRODUCT)
+        self.infix_right(TokenType.CARET, Precedence.EXPONENT)
 
-    
     # Registers a postfix unary operator parselet for the given token and
     # precedence.
     def postfix(self, token, precedence):
@@ -446,8 +464,10 @@ class BantamParser(Parser):
     def infix_right(self, token, precedence):
         self.register(token, BinaryOperatorParselet(precedence, True))
 
+
 passed = 0
 failed = 0
+
 
 # Parses the given chunk of code and verifies that it matches the expected
 # pretty-printed result.
@@ -475,55 +495,56 @@ def test(source, expected):
         print("[FAIL] Expected: " + expected)
         print("          Error: " + str(ex))
 
+
 def main():
     global passed
     global failed
 
     # Function call.
-    test("a()", "a()");
-    test("a(b)", "a(b)");
-    test("a(b, c)", "a(b, c)");
-    test("a(b)(c)", "a(b)(c)");
-    test("a(b) + c(d)", "(a(b) + c(d))");
-    test("a(b ? c : d, e + f)", "a((b ? c : d), (e + f))");
+    test("a()", "a()")
+    test("a(b)", "a(b)")
+    test("a(b, c)", "a(b, c)")
+    test("a(b)(c)", "a(b)(c)")
+    test("a(b) + c(d)", "(a(b) + c(d))")
+    test("a(b ? c : d, e + f)", "a((b ? c : d), (e + f))")
 
     # Unary precedence.
-    test("~!-+a", "(~(!(-(+a))))");
-    test("a!!!", "(((a!)!)!)");
+    test("~!-+a", "(~(!(-(+a))))")
+    test("a!!!", "(((a!)!)!)")
 
     # Unary and binary predecence.
-    test("-a * b", "((-a) * b)");
-    test("!a + b", "((!a) + b)");
-    test("~a ^ b", "((~a) ^ b)");
-    test("-a!",    "(-(a!))");
-    test("!a!",    "(!(a!))");
+    test("-a * b", "((-a) * b)")
+    test("!a + b", "((!a) + b)")
+    test("~a ^ b", "((~a) ^ b)")
+    test("-a!", "(-(a!))")
+    test("!a!", "(!(a!))")
 
     # Binary precedence.
-    test("a = b + c * d ^ e - f / g", "(a = ((b + (c * (d ^ e))) - (f / g)))");
+    test("a = b + c * d ^ e - f / g", "(a = ((b + (c * (d ^ e))) - (f / g)))")
 
     # Binary associativity.
-    test("a = b = c", "(a = (b = c))");
-    test("a + b - c", "((a + b) - c)");
-    test("a * b / c", "((a * b) / c)");
-    test("a ^ b ^ c", "(a ^ (b ^ c))");
+    test("a = b = c", "(a = (b = c))")
+    test("a + b - c", "((a + b) - c)")
+    test("a * b / c", "((a * b) / c)")
+    test("a ^ b ^ c", "(a ^ (b ^ c))")
 
     # Conditional operator.
-    test("a ? b : c ? d : e", "(a ? b : (c ? d : e))");
-    test("a ? b ? c : d : e", "(a ? (b ? c : d) : e)");
-    test("a + b ? c * d : e / f", "((a + b) ? (c * d) : (e / f))");
+    test("a ? b : c ? d : e", "(a ? b : (c ? d : e))")
+    test("a ? b ? c : d : e", "(a ? (b ? c : d) : e)")
+    test("a + b ? c * d : e / f", "((a + b) ? (c * d) : (e / f))")
 
     # Grouping.
-    test("a + (b + c) + d", "((a + (b + c)) + d)");
-    test("a ^ (b + c)", "(a ^ (b + c))");
-    test("(!a)!",    "((!a)!)");
+    test("a + (b + c) + d", "((a + (b + c)) + d)")
+    test("a ^ (b + c)", "(a ^ (b + c))")
+    test("(!a)!", "((!a)!)")
 
     # Show the results.
     if failed == 0:
         print("Passed all " + str(passed) + " tests.")
     else:
-        print("----");
-        print("Failed " + str(failed) + " out of " + 
-                str(failed + passed) + " tests.")
+        print("----")
+        print("Failed " + str(failed) + " out of " + str(failed + passed) + " tests.")
+
 
 if __name__ == "__main__":
     main()
