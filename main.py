@@ -1,6 +1,6 @@
-from enum import Enum, auto
-from collections.abc import Iterator
 from abc import ABCMeta, abstractmethod
+from collections.abc import Iterator
+from enum import Enum, auto, unique
 from io import StringIO
 
 
@@ -20,6 +20,7 @@ class Precedence:
     CALL = 8
 
 
+@unique
 class TokenType(Enum):
     LEFT_PAREN = auto()
     RIGHT_PAREN = auto()
@@ -67,7 +68,7 @@ class Token:
 class Expression(metaclass=ABCMeta):
     @abstractmethod
     def print(self, builder):
-        pass
+        raise NotImplementedError
 
 
 # An assignment expression like "a = b".
@@ -176,17 +177,17 @@ class PrefixExpression(Expression):
 class PrefixParselet(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, parser, token):
-        pass
+        raise NotImplementedError
 
 
 class InfixParselet(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, parser, left, token):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_precedence(self):
-        pass
+        raise NotImplementedError
 
 
 # Parses assignment expressions like "a = b". The left side of an assignment
@@ -496,7 +497,7 @@ def test(source, expected):
         print("          Error: " + str(ex))
 
 
-def main():
+def main() -> None:
     global passed
     global failed
 
