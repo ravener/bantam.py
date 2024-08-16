@@ -68,7 +68,7 @@ class Token:
 class Expression(metaclass=ABCMeta):
     @abstractmethod
     def print(self, builder):
-        raise NotImplementedError
+        pass
 
 
 # An assignment expression like "a = b".
@@ -177,17 +177,17 @@ class PrefixExpression(Expression):
 class PrefixParselet(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, parser, token):
-        raise NotImplementedError
+        pass
 
 
 class InfixParselet(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, parser, left, token):
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def get_precedence(self):
-        raise NotImplementedError
+        pass
 
 
 # Parses assignment expressions like "a = b". The left side of an assignment
